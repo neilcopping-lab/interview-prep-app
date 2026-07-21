@@ -177,7 +177,12 @@ on("toStep3", "click", async () => {
     const report = await res.json();
     if (!res.ok) throw new Error(report.error || "Could not generate report");
     renderReport(report);
-    if ($("genStatus")) $("genStatus").textContent = `Generated for ${report.candidateName || "you"} — ${report.companyName || "this role"}`;
+    const aiTag = report.aiPowered ? " (AI-powered)" : " (prototype mode — add ANTHROPIC_API_KEY for full AI generation)";
+    if ($("genStatus")) $("genStatus").textContent = `Generated for ${report.candidateName || "you"} — ${report.companyName || "this role"}${aiTag}`;
+    // Downloadable the moment it's ready — paid for it, get it immediately,
+    // don't make them hunt for a button. The button stays too, for a re-download.
+    downloadReportAsDocx();
+    renderAddonCard();
   } catch (err) {
     console.error(err);
     if ($("genStatus")) $("genStatus").textContent = "Something went wrong generating the report — please go back and try again.";
@@ -244,18 +249,115 @@ function renderReport(r) {
   $("reportPreview").innerHTML = html;
 }
 
-on("downloadDocx", "click", async () => {
-  const res = await fetch("/api/report/docx", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(state),
+async function downloadReportAsDocx() {
+  try {
+    const res = await fetch("/api/report/docx", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(state),
+    });
+    if (!res.ok) { alert("Could not build the document."); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Interview_Prep_Report.docx";
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error(err);
+    alert("Could not build the document — use the Download button to try again.");
+  }
+}
+
+on("downloadDocx", "click", downloadReportAsDocx);
+
+// ---------------- COACHING ADD-ON ----------------
+function renderAddonCard() {
+  const el = $("addonCard");
+  if (!el) return;
+  el.classList.remove("hidden");
+}
+
+on("showBooking", "click", async () => {
+  const panel = $("bookingPanel");
+  const slotList = $("slotList");
+  if (!panel || !slotList) return;
+  panel.classList.remove("hidden");
+  slotList.innerHTML = "Loading available times…";
+  try {
+    const res = await fetch("/api/booking/slots");
+    const data = await res.json();
+    renderSlots(data.slots || []);
+  } catch (err) {
+    slotList.innerHTML = "Could not load available times — please try again shortly.";
+  }
+});
+
+function renderSlots(slots) {
+  const slotList = $("slotList");
+  if (!slotList) return;
+  if (!slots.length) {
+    slotList.innerHTML = "No slots available in the next two weeks — please check back soon.";
+    return;
+  }
+  const byDay = {};
+  slots.forEach((iso) => {
+    const d = new Date(iso);
+    const dayKey = d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+    byDay[dayKey] = byDay[dayKey] || [];
+    byDay[dayKey].push(iso);
   });
-  if (!res.ok) { alert("Could not build the document."); return; }
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "Interview_Prep_Report.docx";
-  a.click();
-  URL.revokeObjectURL(url);
+  slotList.innerHTML = Object.entries(byDay).map(([day, times]) => `
+    <div class="slot-day">
+      <div class="slot-day-label">${day}</div>
+      <div class="slot-times">
+        ${times.map((iso) => `<button class="slot-btn" data-slot="${iso}">${new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}</button>`).join("")}
+      </div>
+    </div>
+  `).join("");
+
+  slotList.querySelectorAll(".slot-btn").forEach((btn) => {
+    btn.addEventListener("click", () => selectSlot(btn.dataset.slot, btn));
+  });
+}
+
+let selectedSlot = null;
+
+function selectSlot(iso, btn) {
+  selectedSlot = iso;
+  document.querySelectorAll(".slot-btn").forEach((b) => b.classList.remove("selected"));
+  btn.classList.add("selected");
+  const form = $("bookingForm");
+  if (form) form.classList.remove("hidden");
+  if ($("bookName") && !$("bookName").value) $("bookName").value = state.candidateName || "";
+}
+
+on("confirmBooking", "click", async () => {
+  const status = $("bookingStatus");
+  const name = ($("bookName")?.value || "").trim();
+  const email = ($("bookEmail")?.value || "").trim();
+  if (!selectedSlot) { if (status) status.textContent = "Please pick a time first."; return; }
+  if (!name || !email) { if (status) status.textContent = "Please add your name and email."; return; }
+
+  if (status) status.textContent = "Booking…";
+  try {
+    const res = await fetch("/api/booking/book", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slot: selectedSlot, name, email, companyName: state.companyName }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      if (status) status.textContent = data.error || "Could not book that slot — please pick another.";
+      return;
+    }
+    const when = new Date(selectedSlot).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    if (status) status.textContent = `Booked ✓ ${when} (UK time). A confirmation would be emailed to ${email} in production.`;
+    $("slotList").innerHTML = "";
+    $("bookingForm").classList.add("hidden");
+  } catch (err) {
+    console.error(err);
+    if (status) status.textContent = "Something went wrong booking that slot — please try again.";
+  }
 });

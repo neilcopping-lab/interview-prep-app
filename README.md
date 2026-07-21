@@ -20,9 +20,14 @@ Then open `http://localhost:3000`.
 
 ## What's real vs. what's a placeholder
 
-This prototype is fully functional end to end — you can go through all three steps and
-download a real `.docx` — but three pieces are intentionally stubbed out rather than
-wired to paid APIs, so you can review the product before spending anything on it:
+This app is fully functional end to end, and as of this version the report-writing AI
+calls are live (not placeholders) whenever `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` are
+set in the environment. Without those keys set, everything still works — it just falls
+back to the original rule-based prototype logic instead of erroring out. The same
+fallback also kicks in automatically if a real API call fails for any reason (bad key,
+rate limit, network blip), so a paying customer should never see a broken report.
+
+Payment is the one piece still fully stubbed out:
 
 | Feature | Status | To go live |
 |---|---|---|
@@ -30,35 +35,54 @@ wired to paid APIs, so you can review the product before spending anything on it
 | Competency questions matched to the job description | ✅ Working (keyword-matched against a 16-question bank in `lib/questionBank.js`) | Swap `selectQuestions()` for a real model call to write bespoke questions instead of picking from a fixed bank |
 | STAR "how to answer" explainer, in-app and in the report | ✅ Working | — |
 | Audio recording in the browser | ✅ Working | — |
-| Speech-to-text transcription | ⚠️ Stubbed — falls back to typing | Add `OPENAI_API_KEY`, implement the Whisper call in `server.js` → `/api/transcribe` |
-| Company research | ⚠️ Placeholder text | Add `ANTHROPIC_API_KEY`, call Claude with the web-search tool enabled in `lib/reportGenerator.js` → `companyResearch()` |
-| STAR answer drafting | ⚠️ Naive rule-based split of the transcript | Replace `draftStarAnswer()` in `lib/reportGenerator.js` with a real model call — same idea, much better output |
-| Gap analysis (JD vs CV) | ⚠️ Keyword overlap only | Replace `gapAnalysis()` with a real model call for genuine reasoning (e.g. recognising "Canva" as an adjacent skill to "Adobe") |
+| Speech-to-text transcription | ✅ Live — uses OpenAI's transcription API when `OPENAI_API_KEY` is set | — |
+| Company research | ✅ Live — real Claude call with web search enabled when `ANTHROPIC_API_KEY` is set | — |
+| Pitch "Fit" summary | ✅ Live — written from the candidate's actual CV, weighted to the JD | — |
+| STAR answer drafting | ✅ Live — Claude restructures the real transcript into clean S/T/A/R | — |
+| Gap analysis (JD vs CV) | ✅ Live — Claude reasons about genuine gaps (e.g. "Canva" as an adjacent skill to "Adobe"), not just missing keywords | — |
 | Payment | ⚠️ Stubbed — `/api/checkout` returns a message, not a real session | Add `STRIPE_SECRET_KEY`, create a real Stripe Checkout session, gate `/api/report*` behind a confirmed payment |
-| Docx export | ✅ Working | — |
+| Docx export | ✅ Working, auto-downloads the moment the report finishes generating | — |
 | Visual design | ✅ Matched to the-common-people.com (Anton/Oswald/Arvo fonts, navy/mustard/sky-blue/orange palette pulled from the live site) | — |
+| Coaching call add-on (£29) | ✅ Real booking system — generates genuine availability, prevents double-booking (`lib/booking.js`) | Add payment gate (see Payment row) so slots are only bookable after the £29 is confirmed paid. Also move off local-disk storage before real launch — see the ⚠️ note below. |
+| Privacy & data notice | ✅ Draft published at `/privacy.html`, linked from the app | Have this reviewed properly (by a solicitor if budget allows) before real users' data flows through it |
 
-Every stubbed spot is marked `AI UPGRADE POINT` in the code (`lib/reportGenerator.js`
-and `server.js`) so they're easy to find.
+The remaining stubbed spot (payment) is marked `AI UPGRADE POINT` / clearly commented in
+`server.js` so it's easy to find. `lib/questionBank.js` also still uses keyword matching
+rather than a live model call for picking competency questions — see its own comment for
+how to upgrade that too, if you want freshly-written questions instead of picks from the
+16-question bank.
 
-## Why build it this way
+## ⚠️ Before taking real bookings or payments
 
-The concept doc recommended a Phase 1 pilot before full automation. This prototype is
-that pilot's engine: it proves the user journey (intake → answers → generated report →
-download) and the Word-doc export end to end, without spending anything on API calls
-until you're confident the flow itself is right. Swapping in real AI calls at the three
-marked points is a focused, contained piece of work once you're ready.
+- **Booking storage is not production-safe yet.** `lib/booking.js` stores bookings in a
+  plain JSON file on local disk. On Render's free tier, local disk does **not** persist
+  across restarts or redeploys — bookings could be silently lost. Move to Render's paid
+  persistent disk, or better, a real database, before this goes live.
+- **Neither payment is wired up.** Right now anyone can generate a report or book a
+  coaching slot without paying. Both need a real Stripe Checkout flow before launch.
+- **Uploads are validated but not scanned.** File size is capped at 10MB and type is
+  restricted to PDF/Word/text/audio server-side, but there's no malware scanning. Low
+  risk at this scale, worth revisiting if volume grows.
+
+## How to tell it's really using AI
+
+Once both keys are set in Render, generate a report and check the status line under the
+report preview — it'll say "(AI-powered)" instead of "(prototype mode)". The company
+research section is the clearest tell: instead of the bracketed `[AI UPGRADE POINT...]`
+placeholder text, you'll see a real written paragraph about the actual company. If keys
+are set but you still see placeholder text, check Render's logs — the app logs a
+`falling back: ...` line with the real error whenever a live call fails (bad key, out of
+credit, rate limited, etc.) rather than failing silently.
 
 ## Next steps to go live
 
-1. Decide on hosting (Vercel, Render, Railway or similar all work fine for this stack;
-   no special infrastructure needed at this scale).
-2. Buy/point a subdomain, e.g. `prep.thecommonpeople.co.uk`.
-3. Add `ANTHROPIC_API_KEY` and `OPENAI_API_KEY` as environment variables, then implement
-   the three AI upgrade points above.
-4. Add `STRIPE_SECRET_KEY`, create a real Checkout session in `/api/checkout`, and gate
-   report generation behind a confirmed payment (webhook + short-lived access token is
-   the standard pattern).
-5. Add a privacy policy and consent step before audio recording starts (see the Legal,
-   Data and Trust section of the concept document for what needs covering).
-6. Link to it from the relevant Com'mon People guide pages.
+1. ✅ ~~Add `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`~~ — done, report generation and
+   transcription are live.
+2. Add `STRIPE_SECRET_KEY`, create a real Checkout session in `/api/checkout`, and gate
+   report generation (and coaching bookings) behind a confirmed payment (webhook + a
+   short-lived access token is the standard pattern).
+3. Review the privacy notice at `/privacy.html` (draft included) and get it properly
+   checked before real users' data flows through the app — see the Legal, Data and
+   Trust section of the concept document for the full list of what needs covering.
+4. Move booking storage off local disk (see the warning above) before real bookings.
+5. Link to it from the relevant Com'mon People guide pages.

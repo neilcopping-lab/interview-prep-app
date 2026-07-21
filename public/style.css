@@ -245,6 +245,40 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .actions { margin-top: 10px; }
 
+.addon-card {
+  margin-top: 26px;
+  background: var(--bg-dark);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--orange);
+  padding: 18px 20px;
+}
+.addon-card.hidden { display: none; }
+.addon-card h3 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  color: var(--orange);
+  font-size: 20px;
+}
+.addon-card p { font-size: 14px; margin: 0 0 4px; }
+.booking-panel { margin-top: 16px; }
+.booking-panel.hidden { display: none; }
+.slot-list { margin: 10px 0; }
+.slot-day { margin-bottom: 12px; }
+.slot-day-label { font-family: var(--font-heading); font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--sky); margin-bottom: 6px; }
+.slot-times { display: flex; flex-wrap: wrap; gap: 8px; }
+.slot-btn {
+  margin: 0;
+  padding: 7px 12px;
+  background: transparent;
+  border: 2px solid var(--border);
+  color: var(--cream);
+  font-size: 13px;
+}
+.slot-btn:hover { border-color: var(--sky); color: var(--sky); }
+.slot-btn.selected { background: var(--sky); border-color: var(--sky); color: var(--bg-dark); }
+#bookingForm.hidden { display: none; }
+
 .paywall-note {
   margin-top: 28px;
   background: var(--bg-dark);

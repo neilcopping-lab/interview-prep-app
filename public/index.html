@@ -91,6 +91,8 @@
         <p class="star-tip">Tip: say "I," not "we" — the panel is hiring you. And don't rush the Action — it's the part that gets scored.</p>
       </div>
 
+      <p class="hint small">By recording an answer, you're consenting to your voice being processed to generate your report. Recordings aren't kept after they've been transcribed. <a href="/privacy.html" target="_blank">Privacy details</a>.</p>
+
       <div id="questionList"></div>
 
       <button class="secondary" id="back1">← Back</button>
@@ -106,12 +108,36 @@
         <button class="primary" id="downloadDocx">Download as Word document</button>
         <button class="secondary" id="back2">← Back</button>
       </div>
+
+      <div class="addon-card hidden" id="addonCard">
+        <h3>Want it polished by a real recruiter?</h3>
+        <p>Add a 20-minute live coaching call, built around your actual report — not a generic session. <b>£29.</b></p>
+        <button class="primary" id="showBooking">Add coaching call — £29</button>
+        <div class="booking-panel hidden" id="bookingPanel">
+          <label>Pick a time <span class="opt">(UK time, next two weeks)</span></label>
+          <div id="slotList" class="slot-list">Loading…</div>
+          <div class="hidden" id="bookingForm">
+            <label>Your name</label>
+            <input type="text" id="bookName" placeholder="e.g. Neil Copping" />
+            <label>Your email</label>
+            <input type="text" id="bookEmail" placeholder="e.g. you@email.com" />
+            <button class="primary" id="confirmBooking">Confirm booking</button>
+          </div>
+          <p class="hint small" id="bookingStatus"></p>
+        </div>
+      </div>
+
       <div class="paywall-note">
-        <strong>Prototype note:</strong> in production this report sits behind a £45 Stripe Checkout,
-        triggered before Step 1 is unlocked. Payment is stubbed out here — see
-        <code>/api/checkout</code> in <code>server.js</code>.
+        <strong>Prototype note:</strong> in production the £45 report sits behind Stripe Checkout before Step 1 unlocks,
+        and the £29 add-on call above should only be bookable after its own payment is confirmed. Both payments are
+        stubbed out here — see <code>/api/checkout</code> in <code>server.js</code>. The booking system itself is fully
+        working (real slot generation, real double-booking prevention) — only the payment gate in front of it is a placeholder.
       </div>
     </section>
+
+    <p class="hint small" style="text-align:center; margin-top:30px;">
+      <a href="/privacy.html">Privacy &amp; data notice</a>
+    </p>
   </main>
 
   <script src="app.js"></script>
