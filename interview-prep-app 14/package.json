@@ -1,0 +1,19 @@
+{
+  "name": "commonpeople-interview-prep",
+  "version": "0.1.0",
+  "description": "Prototype: paid, personalised interview prep report generator for The Com'mon People",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "multer": "^2.0.0",
+    "mammoth": "^1.7.2",
+    "pdf-parse": "^1.1.1",
+    "docx": "^9.0.2",
+    "uuid": "^9.0.1",
+    "@anthropic-ai/sdk": "^0.32.0",
+    "openai": "^4.70.0"
+  }
+}
