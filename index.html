@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Interview Prep Report — The Com'mon People</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">The Com'mon People</div>
+    <div class="tagline">Interview Prep Report — prototype</div>
+  </header>
+
+  <main class="wrap">
+    <div class="stepper">
+      <div class="step active" data-step="1">1. Job &amp; CV</div>
+      <div class="step" data-step="2">2. Your Answers</div>
+      <div class="step" data-step="3">3. Your Report</div>
+    </div>
+
+    <!-- STEP 1 -->
+    <section class="panel" id="panel-1">
+      <h2>Tell us about the role</h2>
+      <p class="hint">This information trains the whole report — the more specific, the better the output.</p>
+
+      <label>Your name</label>
+      <input type="text" id="candidateName" placeholder="e.g. Neil Copping" />
+
+      <label>Company you're interviewing with</label>
+      <input type="text" id="companyName" placeholder="e.g. Driver Require" />
+
+      <label>A personal detail for your opening pitch <span class="opt">(optional — the "Connect" layer)</span></label>
+      <input type="text" id="connectDetail" placeholder="e.g. based in Hitchin, and outside work I write and produce music" />
+
+      <label>Two values you'd want to lead with <span class="opt">(optional — the "Values" layer, comma separated)</span></label>
+      <input type="text" id="values" placeholder="e.g. people first, integrity" />
+
+      <label>Job description</label>
+      <textarea id="jobDescription" rows="8" placeholder="Paste the full job spec here"></textarea>
+
+      <label>Your CV</label>
+      <div class="cv-row">
+        <input type="file" id="cvFile" accept=".pdf,.docx,.txt" />
+        <span class="or">or paste below</span>
+      </div>
+      <textarea id="cvText" rows="8" placeholder="Paste your CV text here, or upload a file above"></textarea>
+
+      <button class="primary" id="toStep2">Continue →</button>
+    </section>
+
+    <!-- STEP 2 -->
+    <section class="panel hidden" id="panel-2">
+      <h2>Answer a few questions, in your own words</h2>
+      <p class="hint">Record yourself (or type if you'd rather) — these answers become your STAR stories. Two to three good ones is plenty.</p>
+
+      <div id="questionList"></div>
+
+      <button class="secondary" id="back1">← Back</button>
+      <button class="primary" id="toStep3">Generate my report →</button>
+    </section>
+
+    <!-- STEP 3 -->
+    <section class="panel hidden" id="panel-3">
+      <h2>Your interview prep report</h2>
+      <p class="hint" id="genStatus">Generating…</p>
+      <div id="reportPreview"></div>
+      <div class="actions">
+        <button class="primary" id="downloadDocx">Download as Word document</button>
+        <button class="secondary" id="back2">← Back</button>
+      </div>
+      <div class="paywall-note">
+        <strong>Prototype note:</strong> in production this report sits behind a £45 Stripe Checkout,
+        triggered before Step 1 is unlocked. Payment is stubbed out here — see
+        <code>/api/checkout</code> in <code>server.js</code>.
+      </div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
