@@ -176,6 +176,7 @@ on("toStep3", "click", async () => {
     });
     const report = await res.json();
     if (!res.ok) throw new Error(report.error || "Could not generate report");
+    state.generatedReport = report; // reused by downloadReportAsDocx so we don't pay for every AI call (and the cover image) twice
     renderReport(report);
     const aiTag = report.aiPowered ? " (AI-powered)" : " (prototype mode — add ANTHROPIC_API_KEY for full AI generation)";
     if ($("genStatus")) $("genStatus").textContent = `Generated for ${report.candidateName || "you"} — ${report.companyName || "this role"}${aiTag}`;
@@ -208,32 +209,76 @@ function sourcesHtml(sources) {
   const links = sources.map((s) => `<a href="${s.url}" target="_blank" rel="noopener">${s.title}</a>`).join(" &nbsp;•&nbsp; ");
   return `<div class="report-sources"><b>Sources:</b> ${links}</div>`;
 }
+// Renders a { headline, bullets, sources } research section as a real
+// bullet list — this is what replaced the old wall-of-prose paragraphs.
+// Falls back to the upgrade-flag treatment if the AI call fell back
+// (bullets will be empty in that case).
 function researchBlock(title, section) {
-  return block(title, upgradeFlagIfNeeded(section.summary || section.snapshot) + sourcesHtml(section.sources));
+  const headline = section.headline ? `<p>${section.headline}</p>` : "";
+  const bullets = section.bullets && section.bullets.length
+    ? `<ul>${section.bullets.map((b) => `<li>${b}</li>`).join("")}</ul>`
+    : upgradeFlagIfNeeded(section.headline || "");
+  return block(title, headline + bullets + sourcesHtml(section.sources));
+}
+// Small inline SVG bar showing how much of the JD the CV covers — a
+// supporting visual next to the actual Cake + Cherry bullet analysis,
+// not a replacement for it.
+function skillsMatchSvg(skillsMatch) {
+  if (!skillsMatch || skillsMatch.percent === null) return "";
+  const pct = skillsMatch.percent;
+  const w = 400, h = 26;
+  const filledW = Math.round((w * pct) / 100);
+  return `
+    <div class="skills-match">
+      <div class="skills-match-label"><b>Skills Match: ${pct}%</b> — ${skillsMatch.matched} of ${skillsMatch.total} job requirements matched to your CV</div>
+      <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" preserveAspectRatio="none" role="img" aria-label="Skills match ${pct} percent">
+        <rect x="0" y="0" width="${w}" height="${h}" rx="4" fill="rgba(236,230,216,0.12)"></rect>
+        <rect x="0" y="0" width="${filledW}" height="${h}" rx="4" fill="var(--mustard)"></rect>
+      </svg>
+    </div>
+  `;
+}
+
+// Bespoke cover banner — the AI-generated abstract artwork (if it rendered
+// successfully) with the candidate/company name overlaid as real HTML
+// text, not AI-rendered text. Omitted cleanly if no image came back (no
+// OPENAI_API_KEY, or the call failed) — never blocks the rest of the report.
+function coverBannerHtml(r) {
+  if (!r.cover || !r.cover.base64) return "";
+  return `
+    <div class="cover-banner">
+      <img src="data:image/png;base64,${r.cover.base64}" alt="Cover artwork" />
+      <div class="cover-banner-text">
+        <div class="cover-banner-name">${r.candidateName || "Your"}</div>
+        <div class="cover-banner-sub">Interview Prep — ${r.companyName || "Your Role"}</div>
+      </div>
+    </div>
+  `;
 }
 
 function renderReport(r) {
-  let html = "";
+  let html = coverBannerHtml(r);
 
-  html += researchBlock("1. Company Snapshot", r.research);
-  html += researchBlock("2. Recent News &amp; Activity", r.recentNews);
+  html += researchBlock("1. Company Overview", r.research);
+  html += researchBlock("2. Recent News &amp; Press Activity", r.recentNews);
   html += researchBlock("3. Employee Sentiment (Reviews)", r.employeeSentiment);
   html += researchBlock("4. Social Media Presence", r.socialMedia);
   html += researchBlock("5. Market &amp; Sector Intelligence", r.marketIntelligence);
+  html += researchBlock("6. Challenges You May Be Facing in This Role", r.roleChallenges);
 
-  html += block("6. Opening Pitch — The Pitch Sandwich", `
+  html += block("7. Opening Pitch — The Pitch Sandwich", `
     <h4>Bread 1 — Connect</h4>${upgradeFlagIfNeeded(r.pitch.bread1)}
     <h4>Filling — Fit</h4>${upgradeFlagIfNeeded(r.pitch.filling)}
     <h4>Bread 2 — Values</h4>${upgradeFlagIfNeeded(r.pitch.bread2)}
   `);
 
   const matched = r.gapAnalysis.matchedStrengths.length
-    ? `<p><b>Matched strengths:</b> ${r.gapAnalysis.matchedStrengths.join(", ")}</p>`
+    ? `<p><b>Matched strengths:</b></p><ul>${r.gapAnalysis.matchedStrengths.map((m) => `<li>${m}</li>`).join("")}</ul>`
     : `<p><b>Matched strengths:</b> none detected — check the CV genuinely covers this role.</p>`;
   const gaps = r.gapAnalysis.developmentAreas.map((d) =>
     `<div class="star-line"><b>Area:</b> ${d.area}</div><div class="upgrade-flag">⚠ ${d.cherry}</div>`
   ).join("");
-  html += block("7. Gap Analysis — the Cake + Cherry Method", matched + gaps);
+  html += block("8. Gap Analysis — the Cake + Cherry Method", skillsMatchSvg(r.skillsMatch) + matched + gaps);
 
   const guide = r.starGuide;
   const guideHtml = guide ? `
@@ -253,22 +298,26 @@ function renderReport(r) {
     <div class="star-line"><b>Result:</b> ${a.result || "—"}</div>
     ${a.note ? `<div class="upgrade-flag">⚠ ${a.note}</div>` : ""}
   `).join("<hr style='border:none;border-top:1px solid rgba(236,230,216,0.15);margin:14px 0;'>");
-  html += block("8. How to Answer, and Your STAR Answers", guideHtml + stars);
+  html += block("9. How to Answer, and Your STAR Answers", guideHtml + stars);
 
   const qs = Object.entries(r.questionsToAsk).map(([type, list]) => `
     <h4>${type}</h4><ul>${list.map((q) => `<li>${q}</li>`).join("")}</ul>
   `).join("");
-  html += block("9. Your Questions", qs);
+  html += block("10. Your Questions", qs);
 
   $("reportPreview").innerHTML = html;
 }
 
 async function downloadReportAsDocx() {
   try {
+    // Reuse the report we already generated for the on-screen preview
+    // (state.generatedReport) instead of regenerating every AI call —
+    // and the cover image — a second time just to build the .docx.
+    const body = state.generatedReport ? { report: state.generatedReport } : state;
     const res = await fetch("/api/report/docx", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(state),
+      body: JSON.stringify(body),
     });
     if (!res.ok) { alert("Could not build the document."); return; }
     const blob = await res.blob();

@@ -10,9 +10,18 @@ const { generateReport } = require("./lib/reportGenerator");
 const { buildReportDocx } = require("./lib/docxExport");
 const { selectQuestions } = require("./lib/questionBank");
 const { getAvailableSlots, bookSlot } = require("./lib/booking");
+const OpenAI = require("openai");
 const { hasOpenAI, getOpenAI, TRANSCRIBE_MODEL } = require("./lib/aiClients");
 
 const app = express();
+
+// Git doesn't track empty folders, so a fresh repo upload (or a clean
+// clone) can easily arrive without uploads/ even existing — and multer
+// doesn't create its destination folder for you, it just errors. Make
+// sure it's there on startup rather than depending on it having survived
+// the trip through GitHub.
+const UPLOAD_DIR = path.join(__dirname, "uploads");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 // Security: cap upload size (10MB) and restrict to the file types the app
 // actually handles — rejects anything else before it ever touches disk.
@@ -22,7 +31,7 @@ const ALLOWED_UPLOAD_TYPES = new Set([
   "text/plain",
 ]);
 const upload = multer({
-  dest: path.join(__dirname, "uploads"),
+  dest: UPLOAD_DIR,
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (ALLOWED_UPLOAD_TYPES.has(file.mimetype) || file.mimetype.startsWith("audio/")) {
@@ -121,8 +130,18 @@ app.post("/api/transcribe", upload.single("audio"), async (req, res) => {
   }
   try {
     const client = getOpenAI();
+    // Multer writes the upload to disk under a random filename with NO
+    // extension, so a raw fs.createReadStream() gives OpenAI no way to
+    // tell it's webm/mp4/etc audio and the call gets rejected. Wrapping it
+    // with OpenAI.toFile() and passing the browser's original filename
+    // (e.g. "answer.webm") back in fixes that — this was the actual bug
+    // behind transcription silently "not working."
+    const buffer = fs.readFileSync(filePath);
+    const uploadFile = await OpenAI.toFile(buffer, req.file.originalname || "answer.webm", {
+      type: req.file.mimetype || "audio/webm",
+    });
     const transcription = await client.audio.transcriptions.create({
-      file: fs.createReadStream(filePath),
+      file: uploadFile,
       model: TRANSCRIBE_MODEL,
     });
     res.json({ text: (transcription.text || "").trim() });
@@ -149,10 +168,17 @@ app.post("/api/report", async (req, res) => {
 
 // -------------------------------------------------------------------------
 // Generate the report and return it as a downloadable .docx.
+//
+// The frontend auto-downloads the docx immediately after generating the
+// on-screen preview (see public/app.js), so if it already has a report
+// object from that /api/report call it sends it straight back here as
+// { report: {...} } — we build the docx from that instead of paying for
+// every AI call (and the OpenAI cover image) a second time. Only
+// regenerates from scratch if a report wasn't supplied.
 // -------------------------------------------------------------------------
 app.post("/api/report/docx", async (req, res) => {
   try {
-    const report = await generateReport(req.body);
+    const report = req.body && req.body.report ? req.body.report : await generateReport(req.body);
     const buffer = await buildReportDocx(report);
     const filename = `Interview_Prep_${(report.companyName || "report").replace(/[^a-z0-9]/gi, "_")}_${uuid().slice(0, 8)}.docx`;
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document");

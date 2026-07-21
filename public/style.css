@@ -219,6 +219,38 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 .record-btn.recording { background: var(--orange); border-color: var(--orange); color: var(--bg-dark); }
 .qa-status { font-size: 12px; color: var(--cream-soft); font-family: var(--font-body); font-style: italic; }
 
+.cover-banner {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 3 / 2;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  background: var(--bg-dark);
+}
+.cover-banner img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cover-banner-text {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 22px 24px;
+  background: linear-gradient(to top, rgba(15,21,28,0.88), rgba(15,21,28,0));
+}
+.cover-banner-name {
+  font-family: var(--font-display);
+  color: var(--cream);
+  font-size: clamp(22px, 4vw, 34px);
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+.cover-banner-sub {
+  font-family: var(--font-heading);
+  color: var(--mustard);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
 .report-block { margin-bottom: 24px; }
 .report-block h3 {
   font-family: var(--font-display);
@@ -231,6 +263,11 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
 }
 .report-block h4 { font-family: var(--font-heading); color: var(--sky); margin-bottom: 4px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.02em; }
 .report-block p { line-height: 1.55; font-size: 14px; }
+.report-block ul { margin: 4px 0 14px; padding-left: 20px; }
+.report-block li { line-height: 1.55; font-size: 14px; margin-bottom: 6px; }
+.skills-match { margin: 6px 0 16px; }
+.skills-match-label { font-size: 13px; margin-bottom: 6px; }
+.skills-match svg { display: block; }
 .upgrade-flag {
   background: rgba(224, 176, 60, 0.12);
   border: 1px solid rgba(224, 176, 60, 0.5);

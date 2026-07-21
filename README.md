@@ -42,9 +42,12 @@ Payment is the one piece still fully stubbed out:
 | Social media presence + recent activity | ✅ Live — web-search-grounded, with real source links shown under the section | — |
 | Market & sector intelligence | ✅ Live — web-search-grounded, with real source links shown under the section | — |
 | Cited sources on researched sections | ✅ Live — every web-search-backed section shows its real source URLs (not just "trust me") | — |
+| Challenges you may face in the role (labour/skills shortages, sector pressure) | ✅ Live — web-search-grounded, with real source links shown under the section | — |
 | Pitch "Fit" summary | ✅ Live — written from the candidate's actual CV, weighted to the JD | — |
 | STAR answer drafting | ✅ Live — Claude restructures the real transcript into clean S/T/A/R | — |
 | Gap analysis (JD vs CV) | ✅ Live — Claude reasons about genuine gaps (e.g. "Canva" as an adjacent skill to "Adobe"), not just missing keywords | — |
+| Skills-match visual | ✅ Live — a % bar showing matched vs. gap requirements, alongside the full Cake + Cherry bullet analysis | — |
+| Personalised AI cover art | ✅ Live — an abstract, on-brand image generated per report (via OpenAI's image API) with the candidate's name and company overlaid in real text, when `OPENAI_API_KEY` is set. Deliberately abstract, not a literal (and inevitably inaccurate) attempt at the real company's building/logo. | — |
 | Payment | ⚠️ Stubbed — `/api/checkout` returns a message, not a real session | Add `STRIPE_SECRET_KEY`, create a real Stripe Checkout session, gate `/api/report*` behind a confirmed payment |
 | Docx export | ✅ Working, auto-downloads the moment the report finishes generating | — |
 | Visual design | ✅ Matched to the-common-people.com (Anton/Oswald/Arvo fonts, navy/mustard/sky-blue/orange palette pulled from the live site) | — |
@@ -65,6 +68,14 @@ The remaining stubbed spot (payment) is marked `AI UPGRADE POINT` / clearly comm
 - **Uploads are validated but not scanned.** File size is capped at 10MB and type is
   restricted to PDF/Word/text/audio server-side, but there's no malware scanning. Low
   risk at this scale, worth revisiting if volume grows.
+- **A report now costs a bit more in API usage than earlier versions.** Each report
+  involves ~9 AI calls (5 of them Claude web-search calls, plus one OpenAI image
+  generation for the cover art) instead of the original ~4. Still trivial against the £45
+  price, but worth knowing when you're checking margins. One inefficiency is already
+  fixed: the app used to regenerate the *entire* report a second time just to build the
+  downloadable .docx (since it auto-downloads immediately after the on-screen preview) —
+  it now reuses the report it already generated, so you're not paying for every AI call
+  (and the image) twice per customer.
 
 ## How to tell it's really using AI
 
