@@ -89,13 +89,18 @@ app.post("/api/extract-cv", upload.single("cv"), async (req, res) => {
 // lib/questionBank.js) — genuinely responsive to each JD, no API needed.
 // AI UPGRADE POINT: swap for a real model call to write bespoke questions.
 // -------------------------------------------------------------------------
-app.post("/api/questions", (req, res) => {
+app.post("/api/questions", async (req, res) => {
   const { jobDescription, count } = req.body;
   if (!jobDescription || !jobDescription.trim()) {
     return res.status(400).json({ error: "Job description is required to select questions." });
   }
-  const questions = selectQuestions(jobDescription, count || 5);
-  res.json({ questions });
+  try {
+    const questions = await selectQuestions(jobDescription, count || 5);
+    res.json({ questions });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not select questions" });
+  }
 });
 
 // -------------------------------------------------------------------------

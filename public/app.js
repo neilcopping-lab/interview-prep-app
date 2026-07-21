@@ -201,13 +201,27 @@ function upgradeFlagIfNeeded(text) {
   }
   return `<p>${text}</p>`;
 }
+// Renders the "Sources:" line under a researched section — only appears
+// when Claude's web search actually returned citations for that section.
+function sourcesHtml(sources) {
+  if (!sources || !sources.length) return "";
+  const links = sources.map((s) => `<a href="${s.url}" target="_blank" rel="noopener">${s.title}</a>`).join(" &nbsp;•&nbsp; ");
+  return `<div class="report-sources"><b>Sources:</b> ${links}</div>`;
+}
+function researchBlock(title, section) {
+  return block(title, upgradeFlagIfNeeded(section.summary || section.snapshot) + sourcesHtml(section.sources));
+}
 
 function renderReport(r) {
   let html = "";
 
-  html += block("1. Company Research", upgradeFlagIfNeeded(r.research.snapshot));
+  html += researchBlock("1. Company Snapshot", r.research);
+  html += researchBlock("2. Recent News &amp; Activity", r.recentNews);
+  html += researchBlock("3. Employee Sentiment (Reviews)", r.employeeSentiment);
+  html += researchBlock("4. Social Media Presence", r.socialMedia);
+  html += researchBlock("5. Market &amp; Sector Intelligence", r.marketIntelligence);
 
-  html += block("2. Opening Pitch — The Pitch Sandwich", `
+  html += block("6. Opening Pitch — The Pitch Sandwich", `
     <h4>Bread 1 — Connect</h4>${upgradeFlagIfNeeded(r.pitch.bread1)}
     <h4>Filling — Fit</h4>${upgradeFlagIfNeeded(r.pitch.filling)}
     <h4>Bread 2 — Values</h4>${upgradeFlagIfNeeded(r.pitch.bread2)}
@@ -219,7 +233,7 @@ function renderReport(r) {
   const gaps = r.gapAnalysis.developmentAreas.map((d) =>
     `<div class="star-line"><b>Area:</b> ${d.area}</div><div class="upgrade-flag">⚠ ${d.cherry}</div>`
   ).join("");
-  html += block("3. Gap Analysis — the Cake + Cherry Method", matched + gaps);
+  html += block("7. Gap Analysis — the Cake + Cherry Method", matched + gaps);
 
   const guide = r.starGuide;
   const guideHtml = guide ? `
@@ -239,12 +253,12 @@ function renderReport(r) {
     <div class="star-line"><b>Result:</b> ${a.result || "—"}</div>
     ${a.note ? `<div class="upgrade-flag">⚠ ${a.note}</div>` : ""}
   `).join("<hr style='border:none;border-top:1px solid rgba(236,230,216,0.15);margin:14px 0;'>");
-  html += block("4. How to Answer, and Your STAR Answers", guideHtml + stars);
+  html += block("8. How to Answer, and Your STAR Answers", guideHtml + stars);
 
   const qs = Object.entries(r.questionsToAsk).map(([type, list]) => `
     <h4>${type}</h4><ul>${list.map((q) => `<li>${q}</li>`).join("")}</ul>
   `).join("");
-  html += block("5. Your Questions", qs);
+  html += block("9. Your Questions", qs);
 
   $("reportPreview").innerHTML = html;
 }

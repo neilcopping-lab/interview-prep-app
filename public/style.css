@@ -240,6 +240,16 @@ button:disabled { opacity: 0.45; cursor: not-allowed; }
   margin: 6px 0;
   font-family: var(--font-body);
 }
+.report-sources {
+  font-size: 11.5px;
+  color: var(--cream-soft);
+  font-family: var(--font-body);
+  opacity: 0.85;
+  margin: 4px 0 10px;
+  line-height: 1.5;
+}
+.report-sources a { color: var(--sky); text-decoration: none; }
+.report-sources a:hover { text-decoration: underline; }
 .star-line { font-size: 14px; margin: 4px 0; }
 .star-line b { color: var(--sky); }
 

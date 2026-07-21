@@ -32,11 +32,16 @@ Payment is the one piece still fully stubbed out:
 | Feature | Status | To go live |
 |---|---|---|
 | Intake form, CV **and** JD upload/parsing (.pdf/.docx/.txt) | ✅ Working | — |
-| Competency questions matched to the job description | ✅ Working (keyword-matched against a 16-question bank in `lib/questionBank.js`) | Swap `selectQuestions()` for a real model call to write bespoke questions instead of picking from a fixed bank |
+| Competency questions matched to the job description | ✅ Live — Claude writes 5 bespoke questions from the actual JD text when `ANTHROPIC_API_KEY` is set. Falls back to keyword-matching a 16-question bank (`lib/questionBank.js`) if the key's missing or the call fails. | — |
 | STAR "how to answer" explainer, in-app and in the report | ✅ Working | — |
 | Audio recording in the browser | ✅ Working | — |
 | Speech-to-text transcription | ✅ Live — uses OpenAI's transcription API when `OPENAI_API_KEY` is set | — |
 | Company research | ✅ Live — real Claude call with web search enabled when `ANTHROPIC_API_KEY` is set | — |
+| Recent news & press mentions | ✅ Live — web-search-grounded, with real source links shown under the section | — |
+| Employee sentiment (Glassdoor/Google/Indeed themes) | ✅ Live — web-search-grounded, with real source links shown under the section | — |
+| Social media presence + recent activity | ✅ Live — web-search-grounded, with real source links shown under the section | — |
+| Market & sector intelligence | ✅ Live — web-search-grounded, with real source links shown under the section | — |
+| Cited sources on researched sections | ✅ Live — every web-search-backed section shows its real source URLs (not just "trust me") | — |
 | Pitch "Fit" summary | ✅ Live — written from the candidate's actual CV, weighted to the JD | — |
 | STAR answer drafting | ✅ Live — Claude restructures the real transcript into clean S/T/A/R | — |
 | Gap analysis (JD vs CV) | ✅ Live — Claude reasons about genuine gaps (e.g. "Canva" as an adjacent skill to "Adobe"), not just missing keywords | — |
@@ -47,10 +52,7 @@ Payment is the one piece still fully stubbed out:
 | Privacy & data notice | ✅ Draft published at `/privacy.html`, linked from the app | Have this reviewed properly (by a solicitor if budget allows) before real users' data flows through it |
 
 The remaining stubbed spot (payment) is marked `AI UPGRADE POINT` / clearly commented in
-`server.js` so it's easy to find. `lib/questionBank.js` also still uses keyword matching
-rather than a live model call for picking competency questions — see its own comment for
-how to upgrade that too, if you want freshly-written questions instead of picks from the
-16-question bank.
+`server.js` so it's easy to find.
 
 ## ⚠️ Before taking real bookings or payments
 
