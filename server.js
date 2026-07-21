@@ -8,6 +8,7 @@ const { v4: uuid } = require("uuid");
 
 const { generateReport } = require("./lib/reportGenerator");
 const { buildReportDocx } = require("./lib/docxExport");
+const { selectQuestions } = require("./lib/questionBank");
 
 const app = express();
 const upload = multer({ dest: path.join(__dirname, "uploads") });
@@ -15,34 +16,66 @@ const upload = multer({ dest: path.join(__dirname, "uploads") });
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+async function extractTextFromFile(filePath, originalName) {
+  const name = originalName.toLowerCase();
+  if (name.endsWith(".docx")) {
+    const result = await mammoth.extractRawText({ path: filePath });
+    return result.value;
+  }
+  if (name.endsWith(".pdf")) {
+    const buffer = fs.readFileSync(filePath);
+    const result = await pdfParse(buffer);
+    return result.text;
+  }
+  // .txt or unknown — read as plain text
+  return fs.readFileSync(filePath, "utf8");
+}
+
 // -------------------------------------------------------------------------
-// CV upload -> extracted text. Supports .docx (mammoth) and .pdf (pdf-parse).
-// Anything else, the frontend falls back to "paste your CV as text".
+// File upload -> extracted text. Used for both the CV and the job
+// description upload. Supports .docx (mammoth), .pdf (pdf-parse) and .txt.
+// Anything else, the frontend falls back to "paste the text instead".
 // -------------------------------------------------------------------------
+app.post("/api/extract-text", upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+  try {
+    const text = await extractTextFromFile(req.file.path, req.file.originalname);
+    res.json({ text: text.trim() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not extract text from that file. Try pasting it instead." });
+  } finally {
+    fs.unlink(req.file.path, () => {});
+  }
+});
+
+// Kept for backwards compatibility with the earlier CV-only endpoint.
 app.post("/api/extract-cv", upload.single("cv"), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-  const filePath = req.file.path;
-  const name = req.file.originalname.toLowerCase();
   try {
-    let text = "";
-    if (name.endsWith(".docx")) {
-      const result = await mammoth.extractRawText({ path: filePath });
-      text = result.value;
-    } else if (name.endsWith(".pdf")) {
-      const buffer = fs.readFileSync(filePath);
-      const result = await pdfParse(buffer);
-      text = result.text;
-    } else {
-      // .txt or unknown — read as plain text
-      text = fs.readFileSync(filePath, "utf8");
-    }
+    const text = await extractTextFromFile(req.file.path, req.file.originalname);
     res.json({ text: text.trim() });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Could not extract text from that file. Try pasting your CV instead." });
   } finally {
-    fs.unlink(filePath, () => {});
+    fs.unlink(req.file.path, () => {});
   }
+});
+
+// -------------------------------------------------------------------------
+// Pick competency questions that actually match this job description.
+// Prototype: keyword-matched against a fixed question bank (see
+// lib/questionBank.js) — genuinely responsive to each JD, no API needed.
+// AI UPGRADE POINT: swap for a real model call to write bespoke questions.
+// -------------------------------------------------------------------------
+app.post("/api/questions", (req, res) => {
+  const { jobDescription, count } = req.body;
+  if (!jobDescription || !jobDescription.trim()) {
+    return res.status(400).json({ error: "Job description is required to select questions." });
+  }
+  const questions = selectQuestions(jobDescription, count || 5);
+  res.json({ questions });
 });
 
 // -------------------------------------------------------------------------

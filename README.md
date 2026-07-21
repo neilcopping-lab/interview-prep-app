@@ -26,7 +26,9 @@ wired to paid APIs, so you can review the product before spending anything on it
 
 | Feature | Status | To go live |
 |---|---|---|
-| Intake form, CV upload/parsing (.pdf/.docx/.txt) | ✅ Working | — |
+| Intake form, CV **and** JD upload/parsing (.pdf/.docx/.txt) | ✅ Working | — |
+| Competency questions matched to the job description | ✅ Working (keyword-matched against a 16-question bank in `lib/questionBank.js`) | Swap `selectQuestions()` for a real model call to write bespoke questions instead of picking from a fixed bank |
+| STAR "how to answer" explainer, in-app and in the report | ✅ Working | — |
 | Audio recording in the browser | ✅ Working | — |
 | Speech-to-text transcription | ⚠️ Stubbed — falls back to typing | Add `OPENAI_API_KEY`, implement the Whisper call in `server.js` → `/api/transcribe` |
 | Company research | ⚠️ Placeholder text | Add `ANTHROPIC_API_KEY`, call Claude with the web-search tool enabled in `lib/reportGenerator.js` → `companyResearch()` |
@@ -34,6 +36,7 @@ wired to paid APIs, so you can review the product before spending anything on it
 | Gap analysis (JD vs CV) | ⚠️ Keyword overlap only | Replace `gapAnalysis()` with a real model call for genuine reasoning (e.g. recognising "Canva" as an adjacent skill to "Adobe") |
 | Payment | ⚠️ Stubbed — `/api/checkout` returns a message, not a real session | Add `STRIPE_SECRET_KEY`, create a real Stripe Checkout session, gate `/api/report*` behind a confirmed payment |
 | Docx export | ✅ Working | — |
+| Visual design | ✅ Matched to the-common-people.com (Anton/Oswald/Arvo fonts, navy/mustard/sky-blue/orange palette pulled from the live site) | — |
 
 Every stubbed spot is marked `AI UPGRADE POINT` in the code (`lib/reportGenerator.js`
 and `server.js`) so they're easy to find.
